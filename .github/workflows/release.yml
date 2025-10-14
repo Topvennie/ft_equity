@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest]
         python-version: ["3.13.4"]
 
     steps:
@@ -61,12 +61,6 @@ jobs:
           name: build-ubuntu-latest
           path: dist/linux
 
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-macos-latest
-          path: dist/macos
-
       - name: Create GitHub Release & upload assets
         uses: softprops/action-gh-release@v2
         with:
@@ -75,6 +69,5 @@ jobs:
           files: |
             dist/windows/main.exe
             dist/linux/main
-            dist/macos/main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
