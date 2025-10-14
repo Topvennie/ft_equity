@@ -43,6 +43,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
@@ -61,43 +64,14 @@ jobs:
           name: build-macos-latest
           path: dist/macos
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows executable
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/windows/main.exe
-          asset_name: main.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Linux executable
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/linux/main
-          asset_name: main
-          asset_content_type: application/octet-stream
-
-      - name: Upload macOS executable
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/macos/main
-          asset_name: main
-          asset_content_type: application/octet-stream
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
+          name: Release ${{ github.run_number }}
+          files: |
+            dist/windows/main.exe
+            dist/linux/main
+            dist/macos/main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
