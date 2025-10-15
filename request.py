@@ -1,8 +1,10 @@
-import re
-from bs4 import BeautifulSoup
+import asyncio
 import html
-import requests
 import json
+import re
+
+import aiohttp
+from bs4 import BeautifulSoup
 
 from equity import Equity
 
@@ -151,41 +153,37 @@ PAYLOAD = {
 HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 
 
-def send_request(data: dict) -> str:
-    """
-    The returned boolean value indicates if there are any pages left
-    """
+async def send_request(session: aiohttp.ClientSession, data: dict) -> str:
+    timeout = aiohttp.ClientTimeout(total=20)
 
     for attempt in range(5):
         try:
-            resp = requests.post(URL, headers=HEADERS, data=data, timeout=20)
-            if resp.status_code != 200:
-                raise Exception(f"Status code {resp.status_code}")
+            async with session.post(
+                URL, headers=HEADERS, data=data, timeout=timeout
+            ) as resp:
+                if resp.status != 200:
+                    raise Exception(f"Status code {resp.status}")
 
-            data = resp.json()
-            html = data.get("html", "")
-
-            return html
-
+                json_data = await resp.json()
+                return json_data.get("html", "")
         except Exception as e:
             if attempt < 4:
+                await asyncio.sleep(1)
                 continue
             else:
-                raise Exception(
-                    f"Er is iets misgegaan tijdens het maken van de request: {e}"
-                )
+                raise Exception(f"Request failed after 5 attempts: {e}")
 
     return ""
 
 
-def get_equity(page: int) -> list[Equity]:
+async def get_equity(session: aiohttp.ClientSession, page: int) -> list[Equity]:
     local_payload = PAYLOAD.copy()
     local_payload["page"] = str(page)
 
     try:
-        html = send_request(local_payload)
+        html = await send_request(session, local_payload)
     except Exception as e:
-        print(e)
+        print(f"Error fetching page {page}: {e}")
         return []
 
     if "No matches found" in html:
@@ -195,18 +193,17 @@ def get_equity(page: int) -> list[Equity]:
     return equities
 
 
-def get_pages() -> int:
+async def get_pages(session: aiohttp.ClientSession) -> int:
     local_payload = PAYLOAD.copy()
     local_payload["page"] = "1"
 
     try:
-        html = send_request(local_payload)
+        html = await send_request(session, local_payload)
     except Exception as e:
-        print(e)
+        print(f"Failed to get pages: {e}")
         return -1
 
     soup = BeautifulSoup(sanitize_html(html), "html.parser")
-
     buttons = soup.find_all("button", attrs={"data-mod-pagination-num": True})
     if not buttons:
         return -1
@@ -238,7 +235,7 @@ def sanitize_html(raw_html: str) -> str:
 def parse_market_value(value: str) -> float | None:
     value = value.strip().lower()
 
-    if value in ("--", "", "n/a"):
+    if value in ("--", ""):
         return None
 
     match = re.match(r"([\d.,]+)\s*([mbk]?)", value)
@@ -260,7 +257,7 @@ def parse_market_value(value: str) -> float | None:
 
 def parse_optional_float(value: str) -> float | None:
     value = value.strip().replace("%", "")
-    if value in ("--", "", "n/a"):
+    if value in ("--", ""):
         return None
 
     try:
@@ -271,7 +268,7 @@ def parse_optional_float(value: str) -> float | None:
 
 def normalize_consensus(text: str) -> str:
     text = text.strip().title()
-    if text in ("--", "", "Norating"):
+    if text in ("--", ""):
         return ""
 
     return text

@@ -1,15 +1,10 @@
-from pathlib import Path
-
 import xlsxwriter
 
 from equity import Equity
 
 
 def export_excel(equities: list[Equity], filename: str):
-    downloads_path = get_downloads_folder()
-    file_path = downloads_path / filename
-
-    workbook = xlsxwriter.Workbook(str(file_path))
+    workbook = xlsxwriter.Workbook(filename)
     worksheet = workbook.add_worksheet("Equities")
 
     headers = [
@@ -62,12 +57,3 @@ def export_excel(equities: list[Equity], filename: str):
     worksheet.set_column(5, 10, 18)
 
     workbook.close()
-
-
-def get_downloads_folder() -> Path:
-    home = Path.home()
-    downloads = home / "Downloads"
-    if downloads.exists():
-        return downloads
-
-    return home
