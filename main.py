@@ -49,7 +49,7 @@ def main():
     print("Omzetten naar een excel")
     brussels_tz = pytz.timezone("Europe/Brussels")
     now = datetime.now(brussels_tz)
-    timestamp = now.strftime("%Y-%m-%d_%H:%M")
+    timestamp = now.strftime("%Y-%m-%d_%H-%M")
 
     export_excel(equities, f"equities_{timestamp}.xlsx")
 

@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import xlsxwriter
@@ -10,7 +9,7 @@ def export_excel(equities: list[Equity], filename: str):
     downloads_path = get_downloads_folder()
     file_path = downloads_path / filename
 
-    workbook = xlsxwriter.Workbook(file_path)
+    workbook = xlsxwriter.Workbook(str(file_path))
     worksheet = workbook.add_worksheet("Equities")
 
     headers = [
@@ -29,7 +28,6 @@ def export_excel(equities: list[Equity], filename: str):
     worksheet.write_row(0, 0, headers)
 
     number_format = workbook.add_format({"num_format": "#,##0.00"})
-    percent_format = workbook.add_format({"num_format": "0.00%"})
 
     for row_idx, eq in enumerate(equities, start=1):
         worksheet.write(row_idx, 0, eq.name)
@@ -40,7 +38,7 @@ def export_excel(equities: list[Equity], filename: str):
         if eq.market_cap:
             worksheet.write_number(row_idx, 5, eq.market_cap, number_format)
         if eq.dividend:
-            worksheet.write_number(row_idx, 6, eq.dividend / 100, percent_format)
+            worksheet.write_number(row_idx, 6, eq.dividend, number_format)
         worksheet.write(row_idx, 7, eq.consensus)
         if eq.price_to_earning:
             worksheet.write_number(row_idx, 8, eq.price_to_earning, number_format)
@@ -50,8 +48,8 @@ def export_excel(equities: list[Equity], filename: str):
             worksheet.write_number(
                 row_idx,
                 10,
-                eq.week_price_change / 100,
-                percent_format,
+                eq.week_price_change,
+                number_format,
             )
 
     last_row = len(equities)
